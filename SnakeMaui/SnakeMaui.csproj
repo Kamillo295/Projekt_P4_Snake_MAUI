@@ -28,7 +28,7 @@
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 
 		<!-- Display name -->
-		<ApplicationTitle>SnakeMaui</ApplicationTitle>
+		<ApplicationTitle>Snake</ApplicationTitle>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.companyname.snakemaui</ApplicationId>

@@ -1,10 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using SnakeMaui.Models;
 
 namespace SnakeMaui.Services.Interfaces
 {
-    internal interface IGameService
+    public interface IGameService
     {
+        event EventHandler<GameSnapshot>? StateChanged;
+
+        GameSnapshot Snapshot { get; }
+
+        void StartNewGame();
+
+        void ChangeDirection(Direction direction);
+
+        void Pause();
+
+        void Resume();
+
+        void MoveNext();
     }
 }
