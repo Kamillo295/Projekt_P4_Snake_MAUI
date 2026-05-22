@@ -27,7 +27,6 @@ namespace SnakeMaui
             BindingContext = viewModel;
             GameCanvas.Drawable = _boardDrawable;
 
-            AddSwipeGestures();
             _viewModel.BoardChanged += OnBoardChanged;
             SizeChanged += OnPageSizeChanged;
 
@@ -105,21 +104,6 @@ namespace SnakeMaui
             e.Handled = handled;
         }
 #endif
-
-        private void AddSwipeGestures()
-        {
-            AddSwipeGesture(SwipeDirection.Up, Direction.Up);
-            AddSwipeGesture(SwipeDirection.Down, Direction.Down);
-            AddSwipeGesture(SwipeDirection.Left, Direction.Left);
-            AddSwipeGesture(SwipeDirection.Right, Direction.Right);
-        }
-
-        private void AddSwipeGesture(SwipeDirection swipeDirection, Direction gameDirection)
-        {
-            var gesture = new SwipeGestureRecognizer { Direction = swipeDirection };
-            gesture.Swiped += (_, _) => _viewModel.ChangeDirection(gameDirection);
-            GameCanvas.GestureRecognizers.Add(gesture);
-        }
 
         private void OnBoardChanged(object? sender, EventArgs e)
         {

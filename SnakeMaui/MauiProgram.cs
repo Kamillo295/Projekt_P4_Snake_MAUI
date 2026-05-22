@@ -22,7 +22,7 @@ namespace SnakeMaui
             builder.Services.AddSingleton(new GameOptions
             {
                 BoardSize = 24,
-                StartLength = 4,
+                StartLength = 20,
                 PointsPerFood = 10
             });
 

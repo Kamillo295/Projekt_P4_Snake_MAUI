@@ -8,7 +8,9 @@ namespace SnakeMaui.Services.Implementations
         private readonly GameOptions _options;
         private readonly IRandomProvider _randomProvider;
         private readonly List<Position> _snake = [];
+        private Direction _currentDirection = Direction.Right;
         private Direction _pendingDirection = Direction.Right;
+        private bool _hasPendingDirectionChange;
         private Position _food;
         private int _score;
         private GameStatus _status;
@@ -32,12 +34,16 @@ namespace SnakeMaui.Services.Implementations
 
         public void ChangeDirection(Direction direction)
         {
-            if (_status != GameStatus.Running || IsOpposite(direction, _pendingDirection))
+            if (_status != GameStatus.Running ||
+                _hasPendingDirectionChange ||
+                direction == _currentDirection ||
+                IsOpposite(direction, _currentDirection))
             {
                 return;
             }
 
             _pendingDirection = direction;
+            _hasPendingDirectionChange = true;
         }
 
         public void Pause()
@@ -69,7 +75,10 @@ namespace SnakeMaui.Services.Implementations
                 return;
             }
 
-            var nextHead = _snake[0].Move(_pendingDirection);
+            _currentDirection = _pendingDirection;
+            _hasPendingDirectionChange = false;
+
+            var nextHead = _snake[0].Move(_currentDirection);
             var eatsFood = nextHead == _food;
 
             if (IsOutsideBoard(nextHead) || HitsSnake(nextHead, eatsFood))
@@ -97,7 +106,9 @@ namespace SnakeMaui.Services.Implementations
         private void ResetBoard(GameStatus status)
         {
             _snake.Clear();
+            _currentDirection = Direction.Right;
             _pendingDirection = Direction.Right;
+            _hasPendingDirectionChange = false;
             _score = 0;
             _status = status;
 
