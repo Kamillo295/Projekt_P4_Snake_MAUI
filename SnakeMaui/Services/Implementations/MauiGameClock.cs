@@ -8,7 +8,7 @@ namespace SnakeMaui.Services.Implementations
 
         public event EventHandler? Tick;
 
-        public TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(130);
+        public TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(150);
 
         public bool IsRunning => _timer?.IsRunning == true;
 
@@ -25,18 +25,25 @@ namespace SnakeMaui.Services.Implementations
 
         private void EnsureTimer()
         {
-            if (_timer is not null)
+            if (_timer is null)
             {
-                _timer.Interval = Interval;
-                return;
+                var dispatcher = Application.Current?.Dispatcher;
+
+                if (dispatcher is null)
+                {
+                    throw new InvalidOperationException("Brak aktywnego dispatchera MAUI.");
+                }
+
+                _timer = dispatcher.CreateTimer();
+                _timer.Tick += OnTimerTick;
             }
 
-            var dispatcher = Application.Current?.Dispatcher
-                ?? throw new InvalidOperationException("Brak aktywnego dispatchera MAUI.");
-
-            _timer = dispatcher.CreateTimer();
             _timer.Interval = Interval;
-            _timer.Tick += (_, _) => Tick?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnTimerTick(object? sender, EventArgs e)
+        {
+            Tick?.Invoke(this, EventArgs.Empty);
         }
     }
 }
