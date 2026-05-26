@@ -1,12 +1,11 @@
 using SnakeMaui.Models;
-using SnakeMaui.Services.Interfaces;
 
 namespace SnakeMaui.Services.Implementations
 {
-    public sealed class GameService : IGameService
+    public sealed class GameService
     {
         private readonly GameOptions _options;
-        private readonly IRandomProvider _randomProvider;
+        private readonly Random _random = new();
         private readonly List<Position> _snake = [];
         private Direction _currentDirection = Direction.Right;
         private Direction _pendingDirection = Direction.Right;
@@ -15,10 +14,9 @@ namespace SnakeMaui.Services.Implementations
         private int _score;
         private GameStatus _status;
 
-        public GameService(GameOptions options, IRandomProvider randomProvider)
+        public GameService(GameOptions options)
         {
             _options = options;
-            _randomProvider = randomProvider;
             ResetBoard(GameStatus.Ready);
         }
 
@@ -145,7 +143,7 @@ namespace SnakeMaui.Services.Implementations
                 return _snake[0];
             }
 
-            return freePositions[_randomProvider.Next(0, freePositions.Count)];
+            return freePositions[_random.Next(0, freePositions.Count)];
         }
 
         private bool HitsSnake(Position nextHead, bool eatsFood)

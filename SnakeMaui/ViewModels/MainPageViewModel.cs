@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SnakeMaui.Models;
+using SnakeMaui.Services.Implementations;
 using SnakeMaui.Services.Interfaces;
 
 namespace SnakeMaui.ViewModels
@@ -8,31 +9,28 @@ namespace SnakeMaui.ViewModels
     public sealed class MainPageViewModel : ObservableObject
     {
         private const int MaxScores = 10;
-        private readonly IGameService _gameService;
+        private static readonly TimeSpan GameInterval = TimeSpan.FromMilliseconds(150);
+
+        private readonly GameService _gameService;
         private readonly IScoreRepository _scoreRepository;
-        private readonly IGameClock _gameClock;
+        private IDispatcherTimer? _gameTimer;
         private GameSnapshot _snapshot;
         private string _playerName = "Gracz";
         private string _statusMessage = "Gotowy do gry";
         private bool _isBusy;
         private bool _scoreSavedForCurrentGame;
 
-        public MainPageViewModel(
-            IGameService gameService,
-            IScoreRepository scoreRepository,
-            IGameClock gameClock)
+        public MainPageViewModel(GameService gameService, IScoreRepository scoreRepository)
         {
             _gameService = gameService;
             _scoreRepository = scoreRepository;
-            _gameClock = gameClock;
             _snapshot = gameService.Snapshot;
 
-            StartCommand = new Command(async () => await StartAsync());
+            StartCommand = new Command(StartGame);
             PauseCommand = new Command(TogglePause);
             ChangeDirectionCommand = new Command<Direction>(ChangeDirection);
 
             _gameService.StateChanged += OnGameStateChanged;
-            _gameClock.Tick += OnGameClockTick;
         }
 
         public event EventHandler? BoardChanged;
@@ -83,7 +81,7 @@ namespace SnakeMaui.ViewModels
 
         public bool IsPauseEnabled => Snapshot.Status is GameStatus.Running or GameStatus.Paused;
 
-        public string PauseButtonText => Snapshot.Status == GameStatus.Paused ? "WZNÓW" : "PAUZA";
+        public string PauseButtonText => Snapshot.Status == GameStatus.Paused ? "WZNOW" : "PAUZA";
 
         public string StartButtonText => Snapshot.Status == GameStatus.Running ? "OD NOWA" : "START";
 
@@ -111,14 +109,12 @@ namespace SnakeMaui.ViewModels
             _gameService.ChangeDirection(direction);
         }
 
-        private async Task StartAsync()
+        private void StartGame()
         {
             _scoreSavedForCurrentGame = false;
             StatusMessage = "Gra trwa";
             _gameService.StartNewGame();
-            _gameClock.Start();
-
-            await Task.CompletedTask;
+            StartTimer();
         }
 
         private void TogglePause()
@@ -126,7 +122,7 @@ namespace SnakeMaui.ViewModels
             if (Snapshot.Status == GameStatus.Running)
             {
                 _gameService.Pause();
-                _gameClock.Stop();
+                StopTimer();
                 StatusMessage = "Pauza";
                 return;
             }
@@ -134,14 +130,33 @@ namespace SnakeMaui.ViewModels
             if (Snapshot.Status == GameStatus.Paused)
             {
                 _gameService.Resume();
-                _gameClock.Start();
+                StartTimer();
                 StatusMessage = "Gra trwa";
             }
         }
 
-        private void OnGameClockTick(object? sender, EventArgs e)
+        private void StartTimer()
         {
-            _gameService.MoveNext();
+            if (_gameTimer is null)
+            {
+                var dispatcher = Application.Current?.Dispatcher;
+
+                if (dispatcher is null)
+                {
+                    throw new InvalidOperationException("Brak aktywnego dispatchera MAUI.");
+                }
+
+                _gameTimer = dispatcher.CreateTimer();
+                _gameTimer.Interval = GameInterval;
+                _gameTimer.Tick += (_, _) => _gameService.MoveNext();
+            }
+
+            _gameTimer.Start();
+        }
+
+        private void StopTimer()
+        {
+            _gameTimer?.Stop();
         }
 
         private async void OnGameStateChanged(object? sender, GameSnapshot snapshot)
@@ -150,7 +165,7 @@ namespace SnakeMaui.ViewModels
 
             if (snapshot.Status == GameStatus.GameOver)
             {
-                _gameClock.Stop();
+                StopTimer();
                 StatusMessage = $"Koniec gry. Wynik: {snapshot.Score}";
                 await SaveCurrentScoreAsync(snapshot.Score);
             }

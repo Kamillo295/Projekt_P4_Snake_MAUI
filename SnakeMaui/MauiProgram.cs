@@ -22,13 +22,11 @@ namespace SnakeMaui
             builder.Services.AddSingleton(new GameOptions
             {
                 BoardSize = 24,
-                StartLength = 20,
+                StartLength = 4,
                 PointsPerFood = 10
             });
 
-            builder.Services.AddSingleton<IRandomProvider, RandomProvider>();
-            builder.Services.AddSingleton<IGameService, GameService>();
-            builder.Services.AddSingleton<IGameClock, MauiGameClock>();
+            builder.Services.AddSingleton<GameService>();
             builder.Services.AddSingleton<IScoreRepository, JsonScoreRepository>();
             builder.Services.AddSingleton<MainPageViewModel>();
             builder.Services.AddSingleton<MainPage>();
