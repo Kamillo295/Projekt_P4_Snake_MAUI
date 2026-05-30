@@ -12,11 +12,11 @@ namespace SnakeMaui
     public partial class MainPage : ContentPage
     {
         private readonly MainPageViewModel _viewModel;
-        private readonly SnakeBoardDrawable _boardDrawable = new();
+        private readonly SnakeBoardDrawable _boardDrawable = new SnakeBoardDrawable();
         private readonly Grid _rootGrid;
         private readonly Grid _contentGrid;
         private readonly VerticalStackLayout _boardSection;
-        private readonly Border _panelSection;
+        private readonly ScrollView _panelScrollView;
         private readonly GraphicsView _gameCanvas;
         private bool? _isNarrowLayout;
 
@@ -33,7 +33,7 @@ namespace SnakeMaui
             _rootGrid = FindRequiredElement<Grid>("RootGrid");
             _contentGrid = FindRequiredElement<Grid>("ContentGrid");
             _boardSection = FindRequiredElement<VerticalStackLayout>("BoardSection");
-            _panelSection = FindRequiredElement<Border>("PanelSection");
+            _panelScrollView = FindRequiredElement<ScrollView>("PanelScrollView");
             _gameCanvas = FindRequiredElement<GraphicsView>("GameCanvas");
             _gameCanvas.Drawable = _boardDrawable;
 
@@ -44,7 +44,7 @@ namespace SnakeMaui
             RenderBoard();
         }
 
-        private void LoadPageXaml()
+        private void LoadPageXaml()     //takie coś bo w InitializeComponent() kompilator się pulta że niby nie działa na androidzie 
         {
             Microsoft.Maui.Controls.Xaml.Extensions.LoadFromXaml(this, typeof(MainPage));
         }
@@ -59,23 +59,30 @@ namespace SnakeMaui
 #if WINDOWS
         protected override void OnHandlerChanged()
         {
-            if (_keyboardElement is not null)
+            if (_keyboardElement != null)
             {
                 _keyboardElement.KeyDown -= OnWindowsKeyDown;
             }
 
             base.OnHandlerChanged();
 
-            _keyboardElement = Handler?.PlatformView as Microsoft.UI.Xaml.UIElement;
+            if (Handler == null)
+            {
+                return;
+            }
 
-            if (_keyboardElement is null)
+            _keyboardElement = Handler.PlatformView as Microsoft.UI.Xaml.UIElement;
+
+            if (_keyboardElement == null)
             {
                 return;
             }
 
             _keyboardElement.KeyDown += OnWindowsKeyDown;
 
-            if (_keyboardElement is Microsoft.UI.Xaml.Controls.Control control)
+            Microsoft.UI.Xaml.Controls.Control? control = _keyboardElement as Microsoft.UI.Xaml.Controls.Control;
+
+            if (control != null)
             {
                 control.IsTabStop = true;
                 control.Loaded += OnWindowsControlLoaded;
@@ -84,7 +91,9 @@ namespace SnakeMaui
 
         private static void OnWindowsControlLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            if (sender is Microsoft.UI.Xaml.Controls.Control control)
+            Microsoft.UI.Xaml.Controls.Control? control = sender as Microsoft.UI.Xaml.Controls.Control;
+
+            if (control != null)
             {
                 control.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
             }
@@ -92,7 +101,7 @@ namespace SnakeMaui
 
         private void OnWindowsKeyDown(object sender, KeyRoutedEventArgs e)
         {
-            var handled = true;
+            bool handled = true;
 
             switch (e.Key)
             {
@@ -123,23 +132,50 @@ namespace SnakeMaui
 
         private void AddSwipeGestures()
         {
-            AddSwipeGesture(SwipeDirection.Up, Direction.Up);
-            AddSwipeGesture(SwipeDirection.Down, Direction.Down);
-            AddSwipeGesture(SwipeDirection.Left, Direction.Left);
-            AddSwipeGesture(SwipeDirection.Right, Direction.Right);
+            AddSwipeGesture(SwipeDirection.Up);
+            AddSwipeGesture(SwipeDirection.Down);
+            AddSwipeGesture(SwipeDirection.Left);
+            AddSwipeGesture(SwipeDirection.Right);
         }
 
-        private void AddSwipeGesture(SwipeDirection swipeDirection, Direction gameDirection)
+        private void AddSwipeGesture(SwipeDirection swipeDirection)
         {
-            var gesture = new SwipeGestureRecognizer { Direction = swipeDirection };
-            gesture.Swiped += (_, _) => _viewModel.ChangeDirection(gameDirection);
+            SwipeGestureRecognizer gesture = new SwipeGestureRecognizer();
+            gesture.Direction = swipeDirection;
+            gesture.Swiped += OnSwipe;
             _gameCanvas.GestureRecognizers.Add(gesture);
+        }
+
+        private void OnSwipe(object? sender, SwipedEventArgs e)
+        {
+            if (e.Direction == SwipeDirection.Up)
+            {
+                _viewModel.ChangeDirection(Direction.Up);
+            }
+            else if (e.Direction == SwipeDirection.Down)
+            {
+                _viewModel.ChangeDirection(Direction.Down);
+            }
+            else if (e.Direction == SwipeDirection.Left)
+            {
+                _viewModel.ChangeDirection(Direction.Left);
+            }
+            else if (e.Direction == SwipeDirection.Right)
+            {
+                _viewModel.ChangeDirection(Direction.Right);
+            }
         }
 
         private T FindRequiredElement<T>(string name) where T : Element
         {
-            return this.FindByName<T>(name)
-                ?? throw new InvalidOperationException($"Nie znaleziono elementu '{name}' w MainPage.xaml.");
+            T? element = this.FindByName<T>(name);
+
+            if (element == null)
+            {
+                throw new InvalidOperationException($"Nie znaleziono elementu '{name}' w MainPage.xaml.");
+            }
+
+            return element;
         }
 
         private void OnBoardChanged(object? sender, EventArgs e)
@@ -161,7 +197,7 @@ namespace SnakeMaui
 
         private void UpdateResponsiveLayout()
         {
-            var isNarrow = Width < 880;
+            bool isNarrow = Width < 880;
 
             if (_isNarrowLayout == isNarrow)
             {
@@ -176,23 +212,23 @@ namespace SnakeMaui
             {
                 _contentGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
                 _contentGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-                _contentGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                _contentGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
 
                 Grid.SetColumn(_boardSection, 0);
                 Grid.SetRow(_boardSection, 0);
-                Grid.SetColumn(_panelSection, 0);
-                Grid.SetRow(_panelSection, 1);
+                Grid.SetColumn(_panelScrollView, 0);
+                Grid.SetRow(_panelScrollView, 1);
                 return;
             }
 
             _contentGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             _contentGrid.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(320)));
-            _contentGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            _contentGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
 
             Grid.SetColumn(_boardSection, 0);
             Grid.SetRow(_boardSection, 0);
-            Grid.SetColumn(_panelSection, 1);
-            Grid.SetRow(_panelSection, 0);
+            Grid.SetColumn(_panelScrollView, 1);
+            Grid.SetRow(_panelScrollView, 0);
         }
 
         private void UpdateBoardSize()
@@ -202,14 +238,39 @@ namespace SnakeMaui
                 return;
             }
 
-            var horizontalPadding = Width < 720 ? 16 : 24;
+            int horizontalPadding;
+
+            if (Width < 720)
+            {
+                horizontalPadding = 16;
+            }
+            else
+            {
+                horizontalPadding = 24;
+            }
+
             _rootGrid.Padding = new Thickness(horizontalPadding);
 
-            var availableWidth = _isNarrowLayout == true
-                ? Width - horizontalPadding * 2 - 26
-                : Width - horizontalPadding * 2 - 380;
+            double boardSize;
 
-            var boardSize = Math.Clamp(availableWidth, 280, 560);
+            if (_isNarrowLayout == true)
+            {
+                double availableWidth = Width - horizontalPadding * 2 - 26;
+                double availableHeight = Height - 420;
+                double availableBoardSpace = Math.Min(availableWidth, availableHeight);
+                boardSize = Math.Clamp(availableBoardSpace, 200, 420);
+            }
+            else
+            {
+                double availableWidth = Width - horizontalPadding * 2 - 380;
+                boardSize = Math.Clamp(availableWidth, 280, 560);
+            }
+
+            if (double.IsNaN(boardSize))
+            {
+                boardSize = 280;
+            }
+
             _gameCanvas.WidthRequest = boardSize;
             _gameCanvas.HeightRequest = boardSize;
         }

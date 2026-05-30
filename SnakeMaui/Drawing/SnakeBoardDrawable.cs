@@ -24,7 +24,7 @@ namespace SnakeMaui.Drawing
             }
 
             var boardSize = Math.Min(dirtyRect.Width, dirtyRect.Height);
-            var cellSize = boardSize / Snapshot.BoardSize;
+            var cellSize = boardSize / Snapshot.BoardSize;    
             var boardLeft = dirtyRect.Left + (dirtyRect.Width - boardSize) / 2;
             var boardTop = dirtyRect.Top + (dirtyRect.Height - boardSize) / 2;
 

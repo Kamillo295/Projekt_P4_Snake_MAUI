@@ -1,93 +1,93 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using SnakeMaui.Models;
 using SnakeMaui.Services.Interfaces;
 
 namespace SnakeMaui.Services.Implementations
 {
-    public sealed class JsonScoreRepository : IScoreRepository
+    public sealed class JsonScoreRepository : IScoreRepository  // sealed - klasa nie moze byc dziedziczona, co jest dobrym wyborem dla tej klasy, poniewaz nie ma potrzeby jej rozszerzania i moze to poprawic wydajnosc.
     {
         private const string ScoresFileName = "scores.json";
-        private readonly JsonSerializerOptions _jsonOptions = new()
+        private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true,
+            PropertyNameCaseInsensitive = true,     // Umozliwia deserializacje niezaleznie od wielkosci liter w nazwach wlasciwosci
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
+            WriteIndented = true    // Ulatwia czytanie pliku JSON przez czlowieka
         };
 
-        private string ScoresPath => Path.Combine(FileSystem.AppDataDirectory, ScoresFileName);
-
-        public async Task<IReadOnlyList<ScoreEntry>> GetBestScoresAsync(int limit, CancellationToken cancellationToken = default)
+        private string ScoresPath
         {
-            var scores = await ReadScoresAsync(cancellationToken);
-
-            return scores
-                .OrderByDescending(score => score.Score)
-                .ThenBy(score => score.PlayedAt)
-                .Take(limit)
-                .ToArray();
+            get
+            {
+                return Path.Combine(FileSystem.AppDataDirectory, ScoresFileName);
+            }
         }
 
-        public async Task AddScoreAsync(ScoreEntry scoreEntry, int limit, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<ScoreEntry>> GetBestScoresAsync(int limit, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            List<ScoreEntry> scores = await ReadScoresAsync(cancellationToken);
+            return GetBestScores(scores, limit);
+        }
+
+        public async Task AddScoreAsync(ScoreEntry scoreEntry, int limit, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (scoreEntry.Score <= 0)
             {
                 return;
             }
 
-            var scores = await ReadScoresAsync(cancellationToken);
+            List<ScoreEntry> scores = await ReadScoresAsync(cancellationToken);
             scores.Add(scoreEntry);
 
-            var bestScores = scores
-                .OrderByDescending(score => score.Score)
-                .ThenBy(score => score.PlayedAt)
-                .Take(limit)
-                .ToArray();
-
-            var json = JsonSerializer.Serialize(bestScores, _jsonOptions);
-            Directory.CreateDirectory(FileSystem.AppDataDirectory);
-            await File.WriteAllTextAsync(ScoresPath, json, cancellationToken);
+            List<ScoreEntry> bestScores = GetBestScores(scores, limit);
+            await SaveScoresAsync(bestScores, cancellationToken);
         }
 
         private async Task<List<ScoreEntry>> ReadScoresAsync(CancellationToken cancellationToken)
         {
-            await EnsureScoresFileExistsAsync(cancellationToken);
+            if (!File.Exists(ScoresPath))
+            {
+                return new List<ScoreEntry>();
+            }
 
             try
             {
-                await using var fileStream = File.OpenRead(ScoresPath);
-                var scores = await JsonSerializer.DeserializeAsync<List<ScoreEntry>>(fileStream, _jsonOptions, cancellationToken);
+                string json = await File.ReadAllTextAsync(ScoresPath, cancellationToken);
+                List<ScoreEntry>? scores = JsonSerializer.Deserialize<List<ScoreEntry>>(json, _jsonOptions);
 
-                return scores ?? [];
+                if (scores is null)
+                {
+                    return new List<ScoreEntry>();
+                }
+
+                return scores;
             }
             catch (JsonException)
             {
-                return [];
+                return new List<ScoreEntry>();
             }
             catch (IOException)
             {
-                return [];
+                return new List<ScoreEntry>();
             }
         }
 
-        private async Task EnsureScoresFileExistsAsync(CancellationToken cancellationToken)
+        private async Task SaveScoresAsync(IReadOnlyList<ScoreEntry> scores, CancellationToken cancellationToken)
         {
-            if (File.Exists(ScoresPath))
-            {
-                return;
-            }
-
             Directory.CreateDirectory(FileSystem.AppDataDirectory);
 
-            try
-            {
-                await using var packageStream = await FileSystem.OpenAppPackageFileAsync(ScoresFileName);
-                await using var fileStream = File.Create(ScoresPath);
-                await packageStream.CopyToAsync(fileStream, cancellationToken);
-            }
-            catch (FileNotFoundException)
-            {
-                await File.WriteAllTextAsync(ScoresPath, "[]", cancellationToken);
-            }
+            string json = JsonSerializer.Serialize(scores, _jsonOptions);
+            await File.WriteAllTextAsync(ScoresPath, json, cancellationToken);
+        }
+
+        private static List<ScoreEntry> GetBestScores(IEnumerable<ScoreEntry> scores, int limit)
+        {
+            IEnumerable<ScoreEntry> orderedScores = scores
+                .OrderByDescending(score => score.Score)
+                .ThenBy(score => score.PlayedAt)
+                .Take(limit);
+
+            List<ScoreEntry> bestScores = orderedScores.ToList();
+            return bestScores;
         }
     }
 }
