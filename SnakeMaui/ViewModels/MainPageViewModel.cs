@@ -10,7 +10,6 @@ namespace SnakeMaui.ViewModels
     {
         private const int MaxScores = 10;
         private static readonly TimeSpan GameInterval = TimeSpan.FromMilliseconds(150);
-
         private readonly GameService _gameService;
         private readonly IScoreRepository _scoreRepository;
         private IDispatcherTimer? _gameTimer;
@@ -69,7 +68,7 @@ namespace SnakeMaui.ViewModels
             private set => SetProperty(ref _statusMessage, value);
         }
 
-        public bool IsPauseEnabled => Snapshot.Status is GameStatus.Running or GameStatus.Paused;
+        public bool IsPauseEnabled => Snapshot.Status == GameStatus.Running || Snapshot.Status == GameStatus.Paused;
 
         public string PauseButtonText => Snapshot.Status == GameStatus.Paused ? "WZNOW" : "PAUZA";
 

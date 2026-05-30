@@ -112,9 +112,9 @@ namespace SnakeMaui.Services.Implementations
 
             var center = _options.BoardSize / 2;
 
-            for (var index = 0; index < _options.StartLength; index++)
+            for (var i = 0; i < _options.StartLength; i++)
             {
-                _snake.Add(new Position(center, center - index));
+                _snake.Add(new Position(center, center - i));
             }
 
             _food = CreateFood();
@@ -150,9 +150,9 @@ namespace SnakeMaui.Services.Implementations
         {
             var checkedLength = eatsFood ? _snake.Count : _snake.Count - 1;
 
-            for (var index = 0; index < checkedLength; index++)
+            for (var i = 0; i < checkedLength; i++)
             {
-                if (_snake[index] == nextHead)
+                if (_snake[i] == nextHead)
                 {
                     return true;
                 }
