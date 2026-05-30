@@ -4,14 +4,14 @@ using SnakeMaui.Services.Interfaces;
 
 namespace SnakeMaui.Services.Implementations
 {
-    public sealed class JsonScoreRepository : IScoreRepository  // sealed - klasa nie moze byc dziedziczona, co jest dobrym wyborem dla tej klasy, poniewaz nie ma potrzeby jej rozszerzania i moze to poprawic wydajnosc.
+    public sealed class JsonScoreRepository : IScoreRepository
     {
         private const string ScoresFileName = "scores.json";
         private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true,     // Umozliwia deserializacje niezaleznie od wielkosci liter w nazwach wlasciwosci
+            PropertyNameCaseInsensitive = true,   
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true    // Ulatwia czytanie pliku JSON przez czlowieka
+            WriteIndented = true
         };
 
         private string ScoresPath

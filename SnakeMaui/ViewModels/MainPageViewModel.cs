@@ -17,7 +17,7 @@ namespace SnakeMaui.ViewModels
         private GameSnapshot _snapshot;
         private string _playerName = "Gracz";
         private string _statusMessage = "Gotowy do gry";
-        private bool _isBusy;
+        private bool _isLoadingScores;
         private bool _scoreSavedForCurrentGame;
 
         public MainPageViewModel(GameService gameService, IScoreRepository scoreRepository)
@@ -28,8 +28,6 @@ namespace SnakeMaui.ViewModels
 
             StartCommand = new Command(StartGame);
             PauseCommand = new Command(TogglePause);
-            ChangeDirectionCommand = new Command<Direction>(ChangeDirection);
-
             _gameService.StateChanged += OnGameStateChanged;
         }
 
@@ -40,8 +38,6 @@ namespace SnakeMaui.ViewModels
         public ICommand StartCommand { get; }
 
         public ICommand PauseCommand { get; }
-
-        public ICommand ChangeDirectionCommand { get; }
 
         public GameSnapshot Snapshot
         {
@@ -73,12 +69,6 @@ namespace SnakeMaui.ViewModels
             private set => SetProperty(ref _statusMessage, value);
         }
 
-        public bool IsBusy
-        {
-            get => _isBusy;
-            private set => SetProperty(ref _isBusy, value);
-        }
-
         public bool IsPauseEnabled => Snapshot.Status is GameStatus.Running or GameStatus.Paused;
 
         public string PauseButtonText => Snapshot.Status == GameStatus.Paused ? "WZNOW" : "PAUZA";
@@ -87,12 +77,12 @@ namespace SnakeMaui.ViewModels
 
         public async Task LoadAsync()
         {
-            if (IsBusy)
+            if (_isLoadingScores)
             {
                 return;
             }
 
-            IsBusy = true;
+            _isLoadingScores = true;
 
             try
             {
@@ -100,7 +90,7 @@ namespace SnakeMaui.ViewModels
             }
             finally
             {
-                IsBusy = false;
+                _isLoadingScores = false;
             }
         }
 

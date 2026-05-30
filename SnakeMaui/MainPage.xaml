@@ -49,8 +49,7 @@
 
             <VerticalStackLayout x:Name="BoardSection"
                                  Spacing="8">
-                <Border x:Name="BoardHost"
-                        Padding="12"
+                <Border Padding="12"
                         Stroke="#243423"
                         BackgroundColor="#111812"
                         StrokeShape="RoundRectangle 8"
@@ -72,8 +71,7 @@
             <ScrollView x:Name="PanelScrollView"
                         Grid.Column="1"
                         Orientation="Vertical">
-                <Border x:Name="PanelSection"
-                        Padding="14"
+                <Border Padding="14"
                         Stroke="#BFD0B9"
                         BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#172017}"
                         StrokeShape="RoundRectangle 8"
